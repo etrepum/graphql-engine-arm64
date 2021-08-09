@@ -1,6 +1,7 @@
-FROM golang as cli-builder
 ARG SERVER_IMAGE=fedormelexin/graphql-engine-arm64
-ARG SERVER_IMAGE_TAG=v2.0.0-beta.2
+ARG SERVER_IMAGE_TAG=v2.0.3
+FROM golang as cli-builder
+ARG SERVER_IMAGE_TAG
 RUN apt update && apt install -y npm
 
 RUN mkdir -p /go/src/github.com/hasura
@@ -20,15 +21,15 @@ RUN sed -i -E 's|\$\(BUILDDIR\)/cli-ext-hasura-node(.+)-linux-x64.+|\$\(BUILDDIR
 
 RUN make build-cli-ext copy-cli-ext deps build
 
-FROM fedormelexin/graphql-engine-arm64:v2.0.0-beta.2
+FROM ${SERVER_IMAGE}:${SERVER_IMAGE_TAG}
 RUN apt-get update && apt-get install -y netcat
 
 # set an env var to let the cli know that
 # update notification is disabled
 ENV HASURA_GRAPHQL_SHOW_UPDATE_NOTIFICATION=false
 
+ARG SERVER_IMAGE_TAG
 ARG SCRIPT_VERSION=v3
-ARG SERVER_IMAGE_TAG=v2.0.0-beta.2
 COPY --from=cli-builder /go/src/github.com/hasura/graphql-engine/scripts/cli-migrations/${SCRIPT_VERSION}/docker-entrypoint.sh /bin/
 COPY --from=cli-builder /go/src/github.com/hasura/graphql-engine/cli/_output/${SERVER_IMAGE_TAG}-dirty/cli-hasura-linux-arm64 /bin/hasura-cli
 
